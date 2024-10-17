@@ -1,11 +1,35 @@
-import pygit2
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QApplication, QMainWindow
+import sys
 
-# Path to your local repository
-repo_path = 'C:/Projects/GitClient/Repo/Git-Client'
+class MyWindow(QMainWindow):
+    def __init__(self):
+        super(MyWindow, self).__init__()
+        self.setGeometry(200, 200, 300, 300)
+        self.setWindowTitle("Git Client")
+        self.initUI()
 
-# Open the local repository
-repo = pygit2.Repository(repo_path)
+    def initUI(self):
+        self.label = QtWidgets.QLabel(self)
+        self.label.setText("My label")
+        self.label.move(50, 50)
 
-# Display commit history
-for commit in repo.walk(repo.head.target, pygit2.GIT_SORT_TIME):
-    print(f"Commit: {commit.message}")
+        self.b1 = QtWidgets.QPushButton(self)
+        self.b1.setText("Button")
+        self.b1.clicked.connect(self.clicked)
+
+    def clicked(self):
+        self.label.setText("You pressed the button")
+        self.update()
+
+    def update(self):
+        self.label.adjustSize()
+
+def window():
+    app = QApplication(sys.argv)
+    win = MyWindow()
+
+    win.show()
+    sys.exit(app.exec_())
+
+window()
