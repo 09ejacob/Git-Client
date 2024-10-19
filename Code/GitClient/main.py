@@ -157,7 +157,7 @@ if __name__ == "__main__":
     TOKEN = os.getenv("GITHUB_TOKEN")
 
     git_manager = GitManager(REPO_PATH, REPO_URL, USERNAME, TOKEN)
-    git_manager.switch_to_branch("test")
+    git_manager.switch_to_branch("test-client")
 
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
