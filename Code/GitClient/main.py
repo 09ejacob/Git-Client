@@ -1,11 +1,70 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+import os
+from git import Repo
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class GitManager:
+    def __init__(self, repo_path, repo_url, username, token):
+        self.repo_path = repo_path
+        self.repo_url = repo_url
+        self.username = username
+        self.token = token
+        self.https_url = self._create_https_url()
+
+        self.repo = self._setup_repo()
+
+    def _create_https_url(self):
+        return self.repo_url.replace("https://", f"https://{self.username}:{self.token}@")
+
+    def _setup_repo(self):
+        if not os.path.exists(self.repo_path):
+            print("Cloning repository...")
+            return Repo.clone_from(self.https_url, self.repo_path)
+        else:
+            print("Repository already exists locally.")
+            return Repo(self.repo_path)
+
+    def switch_to_branch(self, branch_name):
+        # Check if the branch exists, and switch to it, or create it
+        if branch_name in self.repo.branches:
+            print(f"Switching to branch '{branch_name}'")
+            self.repo.git.checkout(branch_name)
+        else:
+            print(f"Branch '{branch_name}' does not exist. Creating a new branch.")
+            self.repo.git.checkout('-b', branch_name)
+            # Set the upstream branch for the new branch
+            self.repo.git.push('--set-upstream', 'origin', branch_name)
+
+        print(f"Currently working on branch: {self.repo.active_branch}")
+
+
+    def add_and_commit(self, commit_message):
+        self.repo.git.add(A=True)
+        self.repo.index.commit(commit_message)
+        print(f"Committed with message: '{commit_message}'")
+
+    def push(self):
+        print("Pushing changes...")
+        origin = self.repo.remote(name='origin')
+        origin.push()
+        print("Push completed.")
+
+    def pull(self):
+        print("Pulling latest changes...")
+        origin = self.repo.remote(name='origin')
+        origin.pull()
+        print("Pull completed.")
+
 
 class Ui_MainWindow(object):
-    def setupUi(self, MainWindow):
-        # Window
+    def setupUi(self, MainWindow, git_manager):
+        self.git_manager = git_manager
+
+        # Window setup
         MainWindow.setObjectName("GitBit")
         MainWindow.resize(900, 600)
-
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
 
@@ -28,7 +87,7 @@ class Ui_MainWindow(object):
         self.treeWidget = QtWidgets.QTreeWidget(self.centralwidget)
         self.treeWidget.setGeometry(QtCore.QRect(320, 90, 161, 461))
         self.treeWidget.setObjectName("treeWidget")
-        self.treeWidget.headerItem().setText(0, "1")
+        self.treeWidget.headerItem().setText(0, "Files")
 
         # Title
         self.titleLabel = QtWidgets.QLabel(self.centralwidget)
@@ -39,77 +98,72 @@ class Ui_MainWindow(object):
         self.commitButton = QtWidgets.QPushButton(self.centralwidget)
         self.commitButton.setGeometry(QtCore.QRect(10, 100, 75, 23))
         self.commitButton.setObjectName("commitButton")
-
         self.commitButton.clicked.connect(self.commitClicked)
 
-        # Push Button
+        # Push button
         self.pushButton = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton.setGeometry(QtCore.QRect(10, 130, 75, 23))
         self.pushButton.setObjectName("pushButton")
-
         self.pushButton.clicked.connect(self.pushClicked)
 
-        # Pull Button
+        # Pull button
         self.pullButton = QtWidgets.QPushButton(self.centralwidget)
         self.pullButton.setGeometry(QtCore.QRect(10, 160, 75, 23))
         self.pullButton.setObjectName("pullButton")
-
         self.pullButton.clicked.connect(self.pullClicked)
 
-        # Set the central widget for the main window
         MainWindow.setCentralWidget(self.centralwidget)
 
-        # Create the menubar (optional)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 898, 21))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
 
-        # Create the status bar (optional)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
 
-        # Set the text for all UI elements
         self.retranslateUi(MainWindow)
 
-        # Automatically connect signals to slots
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-    # Define the text and labels for the UI elements
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.branchLabel.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:16pt;\">Branch:</span></p></body></html>"))
-        self.titleLabel.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:20pt; font-weight:600;\">GitBit</span></p></body></html>"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "GitBit"))
+        self.branchLabel.setText(_translate("MainWindow", "Branch:"))
+        self.titleLabel.setText(_translate("MainWindow", "GitBit"))
         self.commitButton.setText(_translate("MainWindow", "Commit"))
         self.pushButton.setText(_translate("MainWindow", "Push"))
         self.pullButton.setText(_translate("MainWindow", "Pull"))
 
     def commitClicked(self):
-        print("Commit")
-    
+        self.git_manager.add_and_commit("Auto commit message")
+        print("Commit action performed.")
+
     def pushClicked(self):
-        print("Push")
+        self.git_manager.push()
+        print("Push action performed.")
 
     def pullClicked(self):
-        print("Pull")
+        self.git_manager.pull()
+        print("Pull action performed.")
 
-# Main entry point for the application
 if __name__ == "__main__":
     import sys
-    # Create the application object
+
+    REPO_PATH = "/Tests"
+    REPO_URL = "https://github.com/09ejacob/Git-Client"
+    USERNAME = os.getenv("GITHUB_USERNAME")
+    TOKEN = os.getenv("GITHUB_TOKEN")
+
+    git_manager = GitManager(REPO_PATH, REPO_URL, USERNAME, TOKEN)
+    git_manager.switch_to_branch("test")
+
     app = QtWidgets.QApplication(sys.argv)
-    
-    # Create the main window object
     MainWindow = QtWidgets.QMainWindow()
-    
-    # Create the UI and set it up
+
     ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    
-    # Show the main window
+    ui.setupUi(MainWindow, git_manager)
     MainWindow.show()
-    
-    # Execute the application
+
     sys.exit(app.exec_())
