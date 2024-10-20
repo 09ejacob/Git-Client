@@ -5,6 +5,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def load_config(config_file='config.txt'):
+    config = {}
+    with open(config_file, 'r') as file:
+        for line in file:
+            key, value = line.strip().split('=', 1)
+            config[key.strip()] = value.strip()
+    return config
+
 class GitManager:
     def __init__(self, repo_path, repo_url, username, token):
         self.repo_path = repo_path
@@ -68,7 +76,6 @@ class GitManager:
         if repo_status:
             changed_files = repo_status.splitlines()
         return changed_files
-
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow, git_manager):
@@ -137,29 +144,26 @@ class Ui_MainWindow(object):
         self.changesPreview = QtWidgets.QTextEdit(self.centralwidget)
         self.changesPreview.setGeometry(QtCore.QRect(10, 100, 470, 280))
         self.changesPreview.setObjectName("changesPreview")
-        self.changesPreview.setReadOnly(True)  # Make it read-only to prevent user edits
+        self.changesPreview.setReadOnly(True)
         self.changesPreview.setPlaceholderText("Changes to be committed will appear here...")
 
         # Branch input (QLineEdit)
         self.branchInput = QtWidgets.QLineEdit(self.centralwidget)
         self.branchInput.setGeometry(QtCore.QRect(320, 55, 161, 31))
         self.branchInput.setObjectName("branchInput")
-        self.branchInput.setText("main")  # Set default branch name as "main"
+        self.branchInput.setText("main")
 
         # Refresh button
         self.refreshButton = QtWidgets.QPushButton(self.centralwidget)
         self.refreshButton.setGeometry(QtCore.QRect(405, 15, 75, 31))
         self.refreshButton.setObjectName("refreshButton")
         self.refreshButton.setText("Refresh")
-
-        # Connect the refresh button to changeBranch method
         self.refreshButton.clicked.connect(self.changeBranch)
 
         # Branch label
         self.branchLabel = QtWidgets.QLabel(self.centralwidget)
         self.branchLabel.setGeometry(QtCore.QRect(320, 10, 60, 41))
         self.branchLabel.setObjectName("branchLabel")
-
         font = QtGui.QFont()
         font.setPointSize(12)
         font.setBold(False)
@@ -170,7 +174,6 @@ class Ui_MainWindow(object):
         self.titleLabel = QtWidgets.QLabel(self.centralwidget)
         self.titleLabel.setGeometry(QtCore.QRect(50, 20, 200, 41))
         self.titleLabel.setObjectName("titleLabel")
-
         font = QtGui.QFont()
         font.setPointSize(30)
         font.setBold(True)
@@ -213,7 +216,6 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
-
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -229,13 +231,10 @@ class Ui_MainWindow(object):
 
     def commitClicked(self):
         commit_message = self.commitMessageInput.toPlainText().strip()
-
         if not commit_message:
             commit_message = "Auto commit message"
-
         self.git_manager.add_and_commit(commit_message)
         print(f"Commit action performed with message: '{commit_message}'")
-
         self.updateChangesPreview()
 
     def pushClicked(self):
@@ -248,13 +247,10 @@ class Ui_MainWindow(object):
 
     def updateCommitHistory(self):
         commit_messages = self.git_manager.get_commit_history()
-
         model = QtGui.QStandardItemModel()
-
         for message in commit_messages:
             item = QtGui.QStandardItem(message)
             model.appendRow(item)
-
         self.commitHistory.setModel(model)
     
     def changeBranch(self):
@@ -262,7 +258,6 @@ class Ui_MainWindow(object):
         if branch_name:
             self.git_manager.switch_to_branch(branch_name)
             print(f"Switched to branch: {branch_name}")
-
             self.updateCommitHistory()
             self.updateChangesPreview()
 
@@ -276,15 +271,18 @@ class Ui_MainWindow(object):
         except Exception as e:
             self.changesPreview.setPlainText(f"Error retrieving changes: {e}")
 
-
 if __name__ == "__main__":
     import sys
 
-    REPO_PATH = "C:\\Projects\\GitClient\\TestRepo\\Git-Client-Test"
-    REPO_URL = "https://github.com/09ejacob/Git-Client-Test"
+    # Load configuration from config.txt
+    config = load_config('config.txt')
+
+    REPO_URL = config.get('REPO_URL')
+    REPO_PATH = config.get('REPO_PATH')
     USERNAME = os.getenv("GITHUB_USERNAME")
     TOKEN = os.getenv("GITHUB_TOKEN")
 
+    # Create GitManager with the loaded configuration
     git_manager = GitManager(REPO_PATH, REPO_URL, USERNAME, TOKEN)
     git_manager.switch_to_branch("main")
 

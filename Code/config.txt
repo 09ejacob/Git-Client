@@ -1,0 +1,2 @@
+REPO_URL=https://github.com/09ejacob/Git-Client-Test
+REPO_PATH=C:\Projects\GitClient\TestRepo\Git-Client-Test
