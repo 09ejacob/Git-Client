@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 import os
 from git import Repo
 from dotenv import load_dotenv
@@ -27,14 +27,12 @@ class GitManager:
             return Repo(self.repo_path)
 
     def switch_to_branch(self, branch_name):
-        # Check if the branch exists, and switch to it, or create it
         if branch_name in self.repo.branches:
             print(f"Switching to branch '{branch_name}'")
             self.repo.git.checkout(branch_name)
         else:
             print(f"Branch '{branch_name}' does not exist. Creating a new branch.")
             self.repo.git.checkout('-b', branch_name)
-            # Set the upstream branch for the new branch
             self.repo.git.push('--set-upstream', 'origin', branch_name)
 
         print(f"Currently working on branch: {self.repo.active_branch}")
@@ -57,6 +55,11 @@ class GitManager:
         origin.pull()
         print("Pull completed.")
 
+    def get_commit_history(self):
+        commits = list(self.repo.iter_commits(self.repo.active_branch))
+        commit_messages = [f"{commit.hexsha[:7]} - {commit.message.strip()}" for commit in commits]
+        return commit_messages
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow, git_manager):
@@ -73,10 +76,12 @@ class Ui_MainWindow(object):
         self.commitHistory.setGeometry(QtCore.QRect(490, 10, 401, 541))
         self.commitHistory.setObjectName("commitHistory")
 
-        # Branch box
-        self.branchBox = QtWidgets.QComboBox(self.centralwidget)
-        self.branchBox.setGeometry(QtCore.QRect(320, 50, 161, 31))
-        self.branchBox.setObjectName("branchBox")
+        # Branch input and connection to changeBranch
+        self.branchInput = QtWidgets.QLineEdit(self.centralwidget)
+        self.branchInput.setGeometry(QtCore.QRect(320, 50, 161, 31))
+        self.branchInput.setObjectName("branchInput")
+        self.branchInput.setText("main")  # Set default branch name as "main"
+        self.branchInput.returnPressed.connect(self.changeBranch)
 
         # Branch label
         self.branchLabel = QtWidgets.QLabel(self.centralwidget)
@@ -89,26 +94,26 @@ class Ui_MainWindow(object):
         self.titleLabel.setObjectName("titleLabel")
 
         # Commit message input
-        self.commitMessageInput = QtWidgets.QLineEdit(self.centralwidget)
-        self.commitMessageInput.setGeometry(QtCore.QRect(10, 70, 200, 23))
+        self.commitMessageInput = QtWidgets.QTextEdit(self.centralwidget)
+        self.commitMessageInput.setGeometry(QtCore.QRect(10, 400, 400, 100))
         self.commitMessageInput.setObjectName("commitMessageInput")
         self.commitMessageInput.setPlaceholderText("Enter commit message")
 
         # Commit button
         self.commitButton = QtWidgets.QPushButton(self.centralwidget)
-        self.commitButton.setGeometry(QtCore.QRect(10, 100, 75, 23))
+        self.commitButton.setGeometry(QtCore.QRect(10, 505, 75, 23))
         self.commitButton.setObjectName("commitButton")
         self.commitButton.clicked.connect(self.commitClicked)
 
         # Push button
         self.pushButton = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton.setGeometry(QtCore.QRect(10, 130, 75, 23))
+        self.pushButton.setGeometry(QtCore.QRect(100, 550, 75, 23))
         self.pushButton.setObjectName("pushButton")
         self.pushButton.clicked.connect(self.pushClicked)
 
         # Pull button
         self.pullButton = QtWidgets.QPushButton(self.centralwidget)
-        self.pullButton.setGeometry(QtCore.QRect(10, 160, 75, 23))
+        self.pullButton.setGeometry(QtCore.QRect(10, 550, 75, 23))
         self.pullButton.setObjectName("pullButton")
         self.pullButton.clicked.connect(self.pullClicked)
 
@@ -137,9 +142,8 @@ class Ui_MainWindow(object):
         self.pullButton.setText(_translate("MainWindow", "Pull"))
         self.commitMessageInput.setPlaceholderText(_translate("MainWindow", "Enter commit message"))
 
-
     def commitClicked(self):
-        commit_message = self.commitMessageInput.text().strip()
+        commit_message = self.commitMessageInput.toPlainText().strip()
 
         if not commit_message:
             commit_message = "Auto commit message"
@@ -155,10 +159,31 @@ class Ui_MainWindow(object):
         self.git_manager.pull()
         print("Pull action performed.")
 
+    def updateCommitHistory(self):
+        commit_messages = self.git_manager.get_commit_history()
+
+        model = QtGui.QStandardItemModel()
+
+        for message in commit_messages:
+            item = QtGui.QStandardItem(message)
+            model.appendRow(item)
+
+        self.commitHistory.setModel(model)
+    
+    def changeBranch(self):
+        branch_name = self.branchInput.text().strip()
+        if branch_name:
+            # Switch the branch using the GitManager
+            self.git_manager.switch_to_branch(branch_name)
+            print(f"Switched to branch: {branch_name}")
+
+            # Update the commit history for the new branch
+            self.updateCommitHistory()
+
 if __name__ == "__main__":
     import sys
 
-    REPO_PATH = "C:\Projects\GitClient\TestRepo\Git-Client-Test"
+    REPO_PATH = "C:\\Projects\\GitClient\\TestRepo\\Git-Client-Test"
     REPO_URL = "https://github.com/09ejacob/Git-Client-Test"
     USERNAME = os.getenv("GITHUB_USERNAME")
     TOKEN = os.getenv("GITHUB_TOKEN")
