@@ -83,16 +83,16 @@ class Ui_MainWindow(object):
         self.branchLabel.setGeometry(QtCore.QRect(320, 10, 101, 41))
         self.branchLabel.setObjectName("branchLabel")
 
-        # Tree
-        self.treeWidget = QtWidgets.QTreeWidget(self.centralwidget)
-        self.treeWidget.setGeometry(QtCore.QRect(320, 90, 161, 461))
-        self.treeWidget.setObjectName("treeWidget")
-        self.treeWidget.headerItem().setText(0, "Files")
-
         # Title
         self.titleLabel = QtWidgets.QLabel(self.centralwidget)
         self.titleLabel.setGeometry(QtCore.QRect(100, 10, 81, 41))
         self.titleLabel.setObjectName("titleLabel")
+
+        # Commit message input
+        self.commitMessageInput = QtWidgets.QLineEdit(self.centralwidget)
+        self.commitMessageInput.setGeometry(QtCore.QRect(10, 70, 200, 23))
+        self.commitMessageInput.setObjectName("commitMessageInput")
+        self.commitMessageInput.setPlaceholderText("Enter commit message")
 
         # Commit button
         self.commitButton = QtWidgets.QPushButton(self.centralwidget)
@@ -135,10 +135,17 @@ class Ui_MainWindow(object):
         self.commitButton.setText(_translate("MainWindow", "Commit"))
         self.pushButton.setText(_translate("MainWindow", "Push"))
         self.pullButton.setText(_translate("MainWindow", "Pull"))
+        self.commitMessageInput.setPlaceholderText(_translate("MainWindow", "Enter commit message"))
+
 
     def commitClicked(self):
-        self.git_manager.add_and_commit("Auto commit message")
-        print("Commit action performed.")
+        commit_message = self.commitMessageInput.text().strip()
+
+        if not commit_message:
+            commit_message = "Auto commit message"
+
+        self.git_manager.add_and_commit(commit_message)
+        print(f"Commit action performed with message: '{commit_message}'")
 
     def pushClicked(self):
         self.git_manager.push()
@@ -151,7 +158,7 @@ class Ui_MainWindow(object):
 if __name__ == "__main__":
     import sys
 
-    REPO_PATH = "C:\Projects\GitClient\Repo\Git-Client"
+    REPO_PATH = "C:\Projects\GitClient\TestRepo\Git-Client-Test"
     REPO_URL = "https://github.com/09ejacob/Git-Client-Test"
     USERNAME = os.getenv("GITHUB_USERNAME")
     TOKEN = os.getenv("GITHUB_TOKEN")
