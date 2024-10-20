@@ -151,13 +151,13 @@ class Ui_MainWindow(object):
 if __name__ == "__main__":
     import sys
 
-    REPO_PATH = "/Tests"
-    REPO_URL = "https://github.com/09ejacob/Git-Client"
+    REPO_PATH = "C:\Projects\GitClient\Repo\Git-Client"
+    REPO_URL = "https://github.com/09ejacob/Git-Client-Test"
     USERNAME = os.getenv("GITHUB_USERNAME")
     TOKEN = os.getenv("GITHUB_TOKEN")
 
     git_manager = GitManager(REPO_PATH, REPO_URL, USERNAME, TOKEN)
-    git_manager.switch_to_branch("test-client")
+    git_manager.switch_to_branch("main")
 
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
