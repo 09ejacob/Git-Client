@@ -37,7 +37,6 @@ class GitManager:
 
         print(f"Currently working on branch: {self.repo.active_branch}")
 
-
     def add_and_commit(self, commit_message):
         self.repo.git.add(A=True)
         self.repo.index.commit(commit_message)
@@ -57,8 +56,18 @@ class GitManager:
 
     def get_commit_history(self):
         commits = list(self.repo.iter_commits(self.repo.active_branch))
-        commit_messages = [f"{commit.hexsha[:7]} - {commit.message.strip()}" for commit in commits]
+        commit_messages = [
+            f"{commit.author.name} - {commit.committed_datetime.strftime('%d-%m-%Y %H:%M:%S')} - {commit.message.strip()}"
+            for commit in commits
+        ]
         return commit_messages
+
+    def get_changes(self):
+        changed_files = []
+        repo_status = self.repo.git.status(porcelain=True)
+        if repo_status:
+            changed_files = repo_status.splitlines()
+        return changed_files
 
 
 class Ui_MainWindow(object):
@@ -66,36 +75,111 @@ class Ui_MainWindow(object):
         self.git_manager = git_manager
 
         # Window setup
-        MainWindow.setObjectName("GitBit")
-        MainWindow.resize(900, 600)
+        MainWindow.setObjectName("Inscribed")
+        MainWindow.resize(1200, 600)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
+        
+        MainWindow.setStyleSheet("""
+                QWidget {
+                    background-color: #555563;
+                }
+
+                QPushButton {
+                    background-color: #d1d5ff;
+                    color: black;
+                    font-size: 14px; 
+                    border-radius: 2px;
+                    padding: 5px;
+                }
+                QPushButton:hover {
+                    background-color: #aeb0cf;
+                }
+
+                QLineEdit {
+                    background-color: #ffffff;
+                    color: #333333;
+                    font-size: 14px;
+                    border: 1px solid #cccccc;
+                    padding: 5px;
+                    border-radius: 4px;
+                }
+
+                QTextEdit {
+                    background-color: #ffffff;
+                    color: #333333;
+                    font-size: 14px;
+                    border: 1px solid #cccccc;
+                    padding: 5px;
+                    border-radius: 4px;
+                }
+
+                QListView {
+                    background-color: #ffffff;
+                    border: 1px solid #cccccc;
+                    font-size: 14px;
+                    color: #333333;
+                    padding: 5px;
+                }
+                                             
+                QListView::item:selected {
+                    background-color: #6a6a7d;
+                    color: white;
+                }
+            """)
 
         # Commit history
         self.commitHistory = QtWidgets.QListView(self.centralwidget)
-        self.commitHistory.setGeometry(QtCore.QRect(490, 10, 401, 541))
+        self.commitHistory.setGeometry(QtCore.QRect(490, 10, 700, 550))
         self.commitHistory.setObjectName("commitHistory")
 
-        # Branch input and connection to changeBranch
+        # Changes preview (QTextEdit)
+        self.changesPreview = QtWidgets.QTextEdit(self.centralwidget)
+        self.changesPreview.setGeometry(QtCore.QRect(10, 100, 470, 280))
+        self.changesPreview.setObjectName("changesPreview")
+        self.changesPreview.setReadOnly(True)  # Make it read-only to prevent user edits
+        self.changesPreview.setPlaceholderText("Changes to be committed will appear here...")
+
+        # Branch input (QLineEdit)
         self.branchInput = QtWidgets.QLineEdit(self.centralwidget)
-        self.branchInput.setGeometry(QtCore.QRect(320, 50, 161, 31))
+        self.branchInput.setGeometry(QtCore.QRect(320, 55, 161, 31))
         self.branchInput.setObjectName("branchInput")
         self.branchInput.setText("main")  # Set default branch name as "main"
-        self.branchInput.returnPressed.connect(self.changeBranch)
+
+        # Refresh button
+        self.refreshButton = QtWidgets.QPushButton(self.centralwidget)
+        self.refreshButton.setGeometry(QtCore.QRect(405, 15, 75, 31))
+        self.refreshButton.setObjectName("refreshButton")
+        self.refreshButton.setText("Refresh")
+
+        # Connect the refresh button to changeBranch method
+        self.refreshButton.clicked.connect(self.changeBranch)
 
         # Branch label
         self.branchLabel = QtWidgets.QLabel(self.centralwidget)
-        self.branchLabel.setGeometry(QtCore.QRect(320, 10, 101, 41))
+        self.branchLabel.setGeometry(QtCore.QRect(320, 10, 60, 41))
         self.branchLabel.setObjectName("branchLabel")
+
+        font = QtGui.QFont()
+        font.setPointSize(12)
+        font.setBold(False)
+        self.branchLabel.setFont(font)
+        self.branchLabel.setStyleSheet("color: white;")
 
         # Title
         self.titleLabel = QtWidgets.QLabel(self.centralwidget)
-        self.titleLabel.setGeometry(QtCore.QRect(100, 10, 81, 41))
+        self.titleLabel.setGeometry(QtCore.QRect(50, 20, 200, 41))
         self.titleLabel.setObjectName("titleLabel")
+
+        font = QtGui.QFont()
+        font.setPointSize(30)
+        font.setBold(True)
+        self.titleLabel.setFont(font)
+        self.titleLabel.setStyleSheet("color: black;")
 
         # Commit message input
         self.commitMessageInput = QtWidgets.QTextEdit(self.centralwidget)
-        self.commitMessageInput.setGeometry(QtCore.QRect(10, 400, 400, 100))
+        self.commitMessageInput.setGeometry(QtCore.QRect(10, 400, 470, 100))
         self.commitMessageInput.setObjectName("commitMessageInput")
         self.commitMessageInput.setPlaceholderText("Enter commit message")
 
@@ -134,12 +218,13 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "GitBit"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Inscribed"))
         self.branchLabel.setText(_translate("MainWindow", "Branch:"))
-        self.titleLabel.setText(_translate("MainWindow", "GitBit"))
+        self.titleLabel.setText(_translate("MainWindow", "Inscribed"))
         self.commitButton.setText(_translate("MainWindow", "Commit"))
         self.pushButton.setText(_translate("MainWindow", "Push"))
         self.pullButton.setText(_translate("MainWindow", "Pull"))
+        self.refreshButton.setText(_translate("MainWindow", "Refresh"))
         self.commitMessageInput.setPlaceholderText(_translate("MainWindow", "Enter commit message"))
 
     def commitClicked(self):
@@ -150,6 +235,8 @@ class Ui_MainWindow(object):
 
         self.git_manager.add_and_commit(commit_message)
         print(f"Commit action performed with message: '{commit_message}'")
+
+        self.updateChangesPreview()
 
     def pushClicked(self):
         self.git_manager.push()
@@ -173,12 +260,22 @@ class Ui_MainWindow(object):
     def changeBranch(self):
         branch_name = self.branchInput.text().strip()
         if branch_name:
-            # Switch the branch using the GitManager
             self.git_manager.switch_to_branch(branch_name)
             print(f"Switched to branch: {branch_name}")
 
-            # Update the commit history for the new branch
             self.updateCommitHistory()
+            self.updateChangesPreview()
+
+    def updateChangesPreview(self):
+        try:
+            changed_files = self.git_manager.get_changes()
+            if changed_files:
+                self.changesPreview.setPlainText("\n".join(changed_files))
+            else:
+                self.changesPreview.setPlainText("No changes to be committed.")
+        except Exception as e:
+            self.changesPreview.setPlainText(f"Error retrieving changes: {e}")
+
 
 if __name__ == "__main__":
     import sys
